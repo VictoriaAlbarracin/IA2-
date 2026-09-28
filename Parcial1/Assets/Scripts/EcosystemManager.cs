@@ -20,7 +20,6 @@ public class EcosystemManager : MonoBehaviour
     [Header("Recursos del escenario")]
     [SerializeField] private List<GameObject> resourcePool;
 
-    // Lista de acciones de la IA
     private List<Actions> _actions;
     private Actions _currentAction;
 
@@ -59,7 +58,6 @@ public class EcosystemManager : MonoBehaviour
         };
     }
 
-
     private void Update()
     {
         //para aumentar las necesidades con el tiempo
@@ -75,9 +73,9 @@ public class EcosystemManager : MonoBehaviour
         EvaluateAI();
     }
 
-    private void EvaluateAI()
+    private void EvaluateAI() //evalua las acciones tomando como prioridad que descanse, si no descansa sigue evaluando las demas
     {
-        //descansar tiene prioridad ante las demas
+        //descansar es la prioridad
         if (energy <= 30f)
         {
             _currentAction = _actions
@@ -90,15 +88,14 @@ public class EcosystemManager : MonoBehaviour
             return;
         }
 
-        // Si tiene suficiente energía,
-        // evalúa el resto de las acciones.
+        // si tiene la energia suficiente evalua el resto de las acciones
         _currentAction = _actions
-            .Where(action => action.Name != "Descansar")
-            .Where(action => action.GetScore() > 0f)
-            .OrderByDescending(action => action.GetScore())
-            .FirstOrDefault();
+            .Where(action => action.Name != "Descansar") //filtra las acciones descartando que descanse ya que no es una urgencia
+            .Where(action => action.GetScore() > 0f) //descarta los score que no sean urgentes
+            .OrderByDescending(action => action.GetScore()) //ordena los scores del mas alto al mas bajo
+            .FirstOrDefault(); //toma el primer elemento
 
-        if (_currentAction != null)
+        if (_currentAction != null) //ejecuta la accion que sea necesaria
         {
             _currentAction.Execute();
         }

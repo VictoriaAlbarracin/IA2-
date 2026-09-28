@@ -1445,6 +1445,7 @@ MonoBehaviour:
   - {fileID: 584727680}
   resourcePool:
   - {fileID: 627946742}
+  - {fileID: 2040923637}
   - {fileID: 101734073}
   - {fileID: 2030802066}
   - {fileID: 8580304}
@@ -1452,7 +1453,6 @@ MonoBehaviour:
   - {fileID: 2127556099}
   - {fileID: 1609412326}
   - {fileID: 1828130055}
-  - {fileID: 2040923637}
   - {fileID: 1839658248}
   - {fileID: 1263194497}
 --- !u!1 &1263194497
