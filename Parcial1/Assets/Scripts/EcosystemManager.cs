@@ -62,12 +62,12 @@ public class EcosystemManager : MonoBehaviour
 
     private void Update()
     {
-        // Aumentan las necesidades con el tiempo
+        //para aumentar las necesidades con el tiempo
         hunger += Time.deltaTime * 3f;
         thirst += Time.deltaTime * 4f;
         energy -= Time.deltaTime * 2f;
 
-        // Limitar valores entre 0 y 100
+        //limitamos los valores entre 0 y 100
         hunger = Mathf.Clamp(hunger, 0f, 100f);
         thirst = Mathf.Clamp(thirst, 0f, 100f);
         energy = Mathf.Clamp(energy, 0f, 100f);
@@ -77,7 +77,7 @@ public class EcosystemManager : MonoBehaviour
 
     private void EvaluateAI()
     {
-        // Descansar tiene prioridad absoluta
+        //descansar tiene prioridad ante las demas
         if (energy <= 30f)
         {
             _currentAction = _actions
@@ -87,7 +87,6 @@ public class EcosystemManager : MonoBehaviour
             {
                 _currentAction.Execute();
             }
-
             return;
         }
 
@@ -152,8 +151,7 @@ public class EcosystemManager : MonoBehaviour
 
     private void Comer()
     {
-        // busca la comida con mayor nutrición.
-
+        //busca la comida con mayor nutrición.
         GameObject targetFood = SearchResource(
             "Food",
             true
@@ -176,7 +174,7 @@ public class EcosystemManager : MonoBehaviour
             {
                 hunger -= food.nutrition;
 
-                hunger = Mathf.Max(hunger, 0f);
+                hunger = Mathf.Max(hunger, 0f); //despues de comer el hambre vuelve a 0
             }
 
             Destroy(targetFood);
@@ -189,8 +187,7 @@ public class EcosystemManager : MonoBehaviour
 
     private void Beber()
     {
-        // OrderBy:
-        // busca el agua más cercana.
+        // con OrderBy busca el agua más cercana.
 
         GameObject targetWater = SearchResource(
             "Water",
@@ -218,8 +215,7 @@ public class EcosystemManager : MonoBehaviour
 
     private void Descansar()
     {
-        // OrderBy:
-        // busca la zona de descanso más cercana.
+        // con OrderBy busca la restzone mas cercana
 
         GameObject restZone = SearchResource(
             "Rest",
@@ -250,8 +246,7 @@ public class EcosystemManager : MonoBehaviour
         bool prioritizeBenefit
     )
     {
-        // El Generator proporciona los recursos
-        // de forma perezosa mediante yield return.
+        // El Generator proporciona los recurso de forma lazy con un yield return
         IEnumerable<GameObject> availableResources =
             GenerateResources(targetTag);
 
@@ -269,7 +264,6 @@ public class EcosystemManager : MonoBehaviour
 
                     return food.nutrition;
                 })
-
                 // Primer resultado
                 .FirstOrDefault();
         }
@@ -283,7 +277,6 @@ public class EcosystemManager : MonoBehaviour
                     resource.transform.position
                 )
             )
-
             .FirstOrDefault();
     }
 }

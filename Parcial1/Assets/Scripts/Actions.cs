@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class Actions 
 {
-    public string Name;
-    public Func<float> GetScore; // funcion que devuelve un float (la urgencia)
-    public Action Execute;       // metodo realiza la acción
+    public string Name; //nombre de la accion
+    public Func<float> GetScore; // funcion que devuelve en un float el score de la urgencia de las necesidades
+    public Action Execute;       // metodo que realiza la acción
 }
