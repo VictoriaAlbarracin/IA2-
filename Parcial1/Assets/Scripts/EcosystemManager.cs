@@ -109,7 +109,7 @@ public class EcosystemManager : MonoBehaviour
 
     void Descansar()
     {
-        var restZone = BuscarRecursoOptimo("Descanso");
+        var restZone = BuscarRecursoOptimo("Rest");
         if (restZone == null) return;
 
         if (Vector3.Distance(transform.position, restZone.transform.position) > 2f)
