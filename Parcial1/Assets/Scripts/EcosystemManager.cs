@@ -37,23 +37,23 @@ public class EcosystemManager : MonoBehaviour
 
             new Actions
             {
-                Name = "Comer",
+                Name = "Eat",
                 GetScore = () => hunger,
-                Execute = Comer
+                Execute = Eat
             },
 
             new Actions
             {
-                Name = "Beber",
+                Name = "Drink",
                 GetScore = () => thirst * 1.2f,
-                Execute = Beber
+                Execute = Drink
             },
 
             new Actions
             {
-                Name = "Descansar",
+                Name = "Rest",
                 GetScore = () => 100f - energy,
-                Execute = Descansar
+                Execute = Rest
             }
         };
     }
@@ -86,25 +86,27 @@ public class EcosystemManager : MonoBehaviour
         if (energy <= 30f)
         {
             _currentAction = _actions
-                .FirstOrDefault(action => action.Name == "Descansar"); 
+                .FirstOrDefault(action => action.Name == "Rest"); 
 
             if (_currentAction != null)
             {
                 _currentAction.Execute();
             }
+
             return;
         }
 
         // si tiene la energia suficiente evalua el resto de las acciones
         _currentAction = _actions
-            .Where(action => action.Name != "Descansar") //filtra las acciones descartando que descanse ya que no es una urgencia
+            .Where(action => action.Name != "Rest") //filtra las acciones descartando que descanse ya que no es una urgencia
             .Where(action => action.GetScore() > 10f) //descarta los score que no sean urgentes
             .OrderByDescending(action => action.GetScore()) //ordena los scores del mas alto al mas bajo
             .FirstOrDefault(); //toma el primer elemento
 
         if (_currentAction != null) //ejecuta la accion que sea necesaria
-        {
-            _currentAction.Execute();
+        {   
+            Debug.Log("I need: " + _currentAction.Name); //que necesita
+            _currentAction.Execute(); 
         }
     }
 
@@ -153,11 +155,12 @@ public class EcosystemManager : MonoBehaviour
         Movement(_currentWaypoint.position);
     }
 
-    private void Comer()
+    private void Eat()
     {
+    
         //busca la comida con mayor nutrición.
         GameObject targetFood = SearchResource(
-            "Food",
+            "Food", 
             true
         );
 
@@ -166,6 +169,7 @@ public class EcosystemManager : MonoBehaviour
             Patrol();
             return;
         }
+       
 
         if (Vector3.Distance(
                 transform.position,
@@ -176,7 +180,10 @@ public class EcosystemManager : MonoBehaviour
 
             if (food != null)
             {
+               
                 hunger -= food.nutrition;
+
+                Debug.Log("I ate! I'm full now!");
 
                 hunger = Mathf.Max(hunger, 0f); //despues de comer el hambre vuelve a 0
             }
@@ -184,12 +191,12 @@ public class EcosystemManager : MonoBehaviour
             Destroy(targetFood);
         }
         else
-        {
+        { 
             Movement(targetFood.transform.position);
         }
     }
 
-    private void Beber()
+    private void Drink()
     {
         // con OrderBy busca el agua más cercana.
 
@@ -209,6 +216,7 @@ public class EcosystemManager : MonoBehaviour
                 targetWater.transform.position
             ) < 1.5f)
         {
+            Debug.Log("I drank! I'm not thirsty anymore");
             thirst = 0f;
         }
         else
@@ -217,7 +225,7 @@ public class EcosystemManager : MonoBehaviour
         }
     }
 
-    private void Descansar()
+    private void Rest()
     {
         // con OrderBy busca la restzone mas cercana
 
@@ -241,6 +249,7 @@ public class EcosystemManager : MonoBehaviour
         }
         else
         {
+            Debug.Log("I rested! I'm not tired!");
             energy = 100f;
         }
     }
