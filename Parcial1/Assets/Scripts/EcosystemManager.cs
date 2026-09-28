@@ -12,92 +12,152 @@ public class EcosystemManager : MonoBehaviour
     [Header("Velocidad de Movimiento")]
     public float speed = 3.5f;
 
-    [Header("Comportamiento libre (Waypoints)")]
+    [Header("Comportamiento libre")]
     public Transform[] waypoints;
+
     private Transform _currentWaypoint;
 
-    // Lista evaluada por LINQ
+    [Header("Recursos del escenario")]
+    [SerializeField] private List<GameObject> resourcePool;
+
+    // Lista de acciones de la IA
     private List<Actions> _actions;
     private Actions _currentAction;
 
+
     private void Start()
     {
-        // Vinculamos cada cálculo de urgencia con su método correspondiente
         _actions = new List<Actions>
         {
-            new Actions { Name = "Patrol", GetScore = () => 30f,           Execute = Patrol},
-            new Actions { Name = "Comer",     GetScore = () => hunger,        Execute = Comer },
-            new Actions { Name = "Beber",     GetScore = () => thirst * 1.2f, Execute = Beber },
-            new Actions { Name = "Descansar", GetScore = () => 100f - energy, Execute = Descansar }
+            new Actions
+            {
+                Name = "Patrol",
+                GetScore = () => 30f,
+                Execute = Patrol
+            },
+
+            new Actions
+            {
+                Name = "Comer",
+                GetScore = () => hunger,
+                Execute = Comer
+            },
+
+            new Actions
+            {
+                Name = "Beber",
+                GetScore = () => thirst * 1.2f,
+                Execute = Beber
+            },
+
+            new Actions
+            {
+                Name = "Descansar",
+                GetScore = () => 100f - energy,
+                Execute = Descansar
+            }
         };
     }
 
+
     private void Update()
     {
+        // Aumentan las necesidades con el tiempo
         hunger += Time.deltaTime * 3f;
         thirst += Time.deltaTime * 4f;
         energy -= Time.deltaTime * 2f;
 
+        // Limitar valores entre 0 y 100
         hunger = Mathf.Clamp(hunger, 0f, 100f);
         thirst = Mathf.Clamp(thirst, 0f, 100f);
         energy = Mathf.Clamp(energy, 0f, 100f);
 
-        if (energy <= 30f)
-        {
-            Debug.Log("OVEJA: DESCANSANDO");
-            Descansar();
-            return;
-        }
-
-        if (thirst >= 60f)
-        {
-            Debug.Log("OVEJA: BUSCANDO AGUA");
-            Beber();
-            return;
-        }
-
-        if (hunger >= 60f)
-        {
-            Debug.Log("OVEJA: BUSCANDO COMIDA");
-            Comer();
-            return;
-        }
-
-        Debug.Log("OVEJA: PATRULLANDO");
-        Patrol();
+        EvaluateAI();
     }
 
-    public void Movement(Vector3 destino) 
+    private void EvaluateAI()
+    {
+        // Descansar tiene prioridad absoluta
+        if (energy <= 30f)
+        {
+            _currentAction = _actions
+                .FirstOrDefault(action => action.Name == "Descansar");
+
+            if (_currentAction != null)
+            {
+                _currentAction.Execute();
+            }
+
+            return;
+        }
+
+        // Si tiene suficiente energía,
+        // evalúa el resto de las acciones.
+        _currentAction = _actions
+            .Where(action => action.Name != "Descansar")
+            .Where(action => action.GetScore() > 0f)
+            .OrderByDescending(action => action.GetScore())
+            .FirstOrDefault();
+
+        if (_currentAction != null)
+        {
+            _currentAction.Execute();
+        }
+    }
+
+    private IEnumerable<GameObject> GenerateResources(string targetTag)
+    {
+        foreach (GameObject resource in resourcePool)
+        {
+            if (resource != null &&
+                resource.activeInHierarchy &&
+                resource.CompareTag(targetTag) &&
+                resource != gameObject)
+            {
+                yield return resource; // entrega un recurso cada vez que es solicitado.
+            }
+        }
+    }
+
+    public void Movement(Vector3 destino)
     {
         destino.y = transform.position.y;
-
-        Vector3 posicionAnterior = transform.position;
 
         transform.position = Vector3.MoveTowards(
             transform.position,
             destino,
             speed * Time.deltaTime
         );
-
     }
 
-    void Patrol()
-    {
-        if (waypoints == null || waypoints.Length == 0) return;
 
-        // Si llego al waypoint o no tiene uno asignado busca otro al azar
-        if (_currentWaypoint == null || Vector3.Distance(transform.position, _currentWaypoint.position) < 1.5f)
+    private void Patrol()
+    {
+        if (waypoints == null || waypoints.Length == 0)
+            return;
+
+        if (_currentWaypoint == null ||
+            Vector3.Distance(
+                transform.position,
+                _currentWaypoint.position
+            ) < 1.5f)
         {
             int index = Random.Range(0, waypoints.Length);
+
             _currentWaypoint = waypoints[index];
         }
 
         Movement(_currentWaypoint.position);
     }
 
-    void Comer()
+    private void Comer()
     {
-        var targetFood = SearchResource("Food");
+        // busca la comida con mayor nutrición.
+
+        GameObject targetFood = SearchResource(
+            "Food",
+            true
+        );
 
         if (targetFood == null)
         {
@@ -105,10 +165,21 @@ public class EcosystemManager : MonoBehaviour
             return;
         }
 
-        if (Vector3.Distance(transform.position, targetFood.transform.position) < 1.5f)
+        if (Vector3.Distance(
+                transform.position,
+                targetFood.transform.position
+            ) < 1.5f)
         {
+            Food food = targetFood.GetComponent<Food>();
+
+            if (food != null)
+            {
+                hunger -= food.nutrition;
+
+                hunger = Mathf.Max(hunger, 0f);
+            }
+
             Destroy(targetFood);
-            hunger = 0f;
         }
         else
         {
@@ -116,9 +187,15 @@ public class EcosystemManager : MonoBehaviour
         }
     }
 
-    void Beber()
+    private void Beber()
     {
-        GameObject targetWater = SearchResource("Water");
+        // OrderBy:
+        // busca el agua más cercana.
+
+        GameObject targetWater = SearchResource(
+            "Water",
+            false
+        );
 
         if (targetWater == null)
         {
@@ -126,12 +203,10 @@ public class EcosystemManager : MonoBehaviour
             return;
         }
 
-        float distancia = Vector3.Distance(
-            transform.position,
-            targetWater.transform.position
-        );
-
-        if (distancia < 1.5f)
+        if (Vector3.Distance(
+                transform.position,
+                targetWater.transform.position
+            ) < 1.5f)
         {
             thirst = 0f;
         }
@@ -141,9 +216,15 @@ public class EcosystemManager : MonoBehaviour
         }
     }
 
-    void Descansar()
+    private void Descansar()
     {
-        var restZone = SearchResource("Rest");
+        // OrderBy:
+        // busca la zona de descanso más cercana.
+
+        GameObject restZone = SearchResource(
+            "Rest",
+            false
+        );
 
         if (restZone == null)
         {
@@ -151,54 +232,58 @@ public class EcosystemManager : MonoBehaviour
             return;
         }
 
-        if (Vector3.Distance(transform.position, restZone.transform.position) > 2f)
+        if (Vector3.Distance(
+                transform.position,
+                restZone.transform.position
+            ) > 2f)
         {
             Movement(restZone.transform.position);
         }
         else
         {
-            energy = 100;
-            energy = Mathf.Clamp(energy, 0f, 100f);
+            energy = 100f;
         }
     }
 
-
-    public IEnumerable<GameObject> ResourceManager(List<GameObject> poolObjetos)
+    private GameObject SearchResource(
+        string targetTag,
+        bool prioritizeBenefit
+    )
     {
-        foreach (var resource in poolObjetos)
+        // El Generator proporciona los recursos
+        // de forma perezosa mediante yield return.
+        IEnumerable<GameObject> availableResources =
+            GenerateResources(targetTag);
+
+        if (prioritizeBenefit)
         {
-            if (resource != null && resource.activeInHierarchy)
-            {
-                yield return resource;
-            }
-        }
-    }
+            return availableResources
 
-    public GameObject SearchResource(string targetTag)
-    {
-        GameObject[] objetos = GameObject.FindGameObjectsWithTag(targetTag);
+                // Mayor nutrición primero
+                .OrderByDescending(resource =>
+                {
+                    Food food = resource.GetComponent<Food>();
 
-        GameObject recursoMasCercano = null;
-        float distanciaMasCercana = Mathf.Infinity;
+                    if (food == null)
+                        return 0f;
 
-        foreach (GameObject objeto in objetos)
-        {
-            // No buscar la propia oveja como recurso
-            if (objeto == gameObject)
-                continue;
+                    return food.nutrition;
+                })
 
-            float distancia = Vector3.Distance(
-                transform.position,
-                objeto.transform.position
-            );
-
-            if (distancia < distanciaMasCercana)
-            {
-                distanciaMasCercana = distancia;
-                recursoMasCercano = objeto;
-            }
+                // Primer resultado
+                .FirstOrDefault();
         }
 
-        return recursoMasCercano;
+        return availableResources
+
+            // Recurso más cercano primero
+            .OrderBy(resource =>
+                Vector3.SqrMagnitude(
+                    transform.position -
+                    resource.transform.position
+                )
+            )
+
+            .FirstOrDefault();
     }
 }
