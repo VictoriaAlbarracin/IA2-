@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class Food : MonoBehaviour
 {
-    [Header("Datos de la comida")]
+    [Header("Type of food")]
     public string foodName;
 
-    [Tooltip("Cantidad de hambre que recupera")]
-    public float nutrition = 25f;
+    [Tooltip("Food nutrition")]
+    public float nutrition = 25f; //cuanta hambre recupera
 }

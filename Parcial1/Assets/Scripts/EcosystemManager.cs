@@ -4,21 +4,21 @@ using UnityEngine;
 
 public class EcosystemManager : MonoBehaviour
 {
-    [Header("Necesidades")]
+    [Header("Necessities")]
     public float hunger = 0f;
     public float thirst = 0f;
     public float energy = 100f;
 
-    [Header("Velocidad de Movimiento")]
+    [Header("Movement Velocity")]
     public float speed = 3.5f;
 
-    [Header("Comportamiento libre")]
+    [Header("Free Behaviour")]
     public Transform[] waypoints;
 
     private Transform _currentWaypoint;
 
-    [Header("Recursos del escenario")]
-    [SerializeField] private List<GameObject> resourcePool;
+    [Header("Resources")]
+    [SerializeField] private List<GameObject> resourcePool; //aca ponemos los objetos
 
     private List<Actions> _actions;
     private Actions _currentAction;
@@ -30,8 +30,8 @@ public class EcosystemManager : MonoBehaviour
         {
             new Actions
             {
-                Name = "Patrol",
-                GetScore = () => 30f,
+                Name = "Patrol", 
+                GetScore = () => 30f, //si no hay nada a mas de 30f que patruye
                 Execute = Patrol
             },
 
@@ -70,16 +70,23 @@ public class EcosystemManager : MonoBehaviour
         thirst = Mathf.Clamp(thirst, 0f, 100f);
         energy = Mathf.Clamp(energy, 0f, 100f);
 
-        EvaluateAI();
+        if (hunger >= 100f || thirst >= 100f) //Se muere si llega al limite de hambre o sed
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        EvaluateAction();
+
     }
 
-    private void EvaluateAI() //evalua las acciones tomando como prioridad que descanse, si no descansa sigue evaluando las demas
+    private void EvaluateAction() //evalua las acciones tomando como prioridad que descanse, si no descansa sigue evaluando las demas
     {
         //descansar es la prioridad
         if (energy <= 30f)
         {
             _currentAction = _actions
-                .FirstOrDefault(action => action.Name == "Descansar");
+                .FirstOrDefault(action => action.Name == "Descansar"); 
 
             if (_currentAction != null)
             {
@@ -91,7 +98,7 @@ public class EcosystemManager : MonoBehaviour
         // si tiene la energia suficiente evalua el resto de las acciones
         _currentAction = _actions
             .Where(action => action.Name != "Descansar") //filtra las acciones descartando que descanse ya que no es una urgencia
-            .Where(action => action.GetScore() > 0f) //descarta los score que no sean urgentes
+            .Where(action => action.GetScore() > 10f) //descarta los score que no sean urgentes
             .OrderByDescending(action => action.GetScore()) //ordena los scores del mas alto al mas bajo
             .FirstOrDefault(); //toma el primer elemento
 
@@ -115,13 +122,13 @@ public class EcosystemManager : MonoBehaviour
         }
     }
 
-    public void Movement(Vector3 destino)
+    public void Movement(Vector3 objective)
     {
-        destino.y = transform.position.y;
+        objective.y = transform.position.y;
 
         transform.position = Vector3.MoveTowards(
             transform.position,
-            destino,
+            objective,
             speed * Time.deltaTime
         );
     }
@@ -240,18 +247,18 @@ public class EcosystemManager : MonoBehaviour
 
     private GameObject SearchResource(
         string targetTag,
-        bool prioritizeBenefit
+        bool prioritizeNutrition // prioriza la comida con mas nutricion
     )
     {
-        // El Generator proporciona los recurso de forma lazy con un yield return
+        // el generator devuelve los recurso de forma lazy que se encuentran en la escena, con un yield return 
         IEnumerable<GameObject> availableResources =
             GenerateResources(targetTag);
 
-        if (prioritizeBenefit)
+        if (prioritizeNutrition)
         {
             return availableResources
 
-                // Mayor nutrición primero
+                // mayor nutricion primero
                 .OrderByDescending(resource =>
                 {
                     Food food = resource.GetComponent<Food>();
@@ -261,13 +268,13 @@ public class EcosystemManager : MonoBehaviour
 
                     return food.nutrition;
                 })
-                // Primer resultado
+                // primer resultado
                 .FirstOrDefault();
         }
 
         return availableResources
 
-            // Recurso más cercano primero
+            // recurso mas cercano primero
             .OrderBy(resource =>
                 Vector3.SqrMagnitude(
                     transform.position -
