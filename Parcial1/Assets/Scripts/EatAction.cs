@@ -8,7 +8,8 @@ public class EatAction : IUtilityAction
 
     public void Execute(Animal animal)
     {
-        GameObject targetFood = animal.BuscarRecurso("Food", true);
+        // Buscamos directamente el componente Food
+        GameObject targetFood = animal.BuscarRecurso<Food>(true);
 
         if (targetFood == null)
         {

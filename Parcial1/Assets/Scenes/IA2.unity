@@ -198,7 +198,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 986fa810f603347428f429c3ba383d82, type: 2}
+  - {fileID: 2100000, guid: f5b9eebf8698b764d88a5be57d0656ab, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -240,8 +240,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a36479318778bb948ab26b027a34382c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  foodName: Hay
-  nutrition: 50
+  foodName: PastoNormal
+  nutrition: 25
 --- !u!1 &11063610
 GameObject:
   m_ObjectHideFlags: 0
@@ -504,8 +504,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a36479318778bb948ab26b027a34382c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  foodName: Pasto
-  nutrition: 25
+  foodName: PastoSeco
+  nutrition: 15
 --- !u!1 &106692597
 GameObject:
   m_ObjectHideFlags: 0
@@ -516,7 +516,7 @@ GameObject:
   m_Component:
   - component: {fileID: 106692598}
   m_Layer: 0
-  m_Name: Food
+  m_Name: FoodGroup
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1372,6 +1372,7 @@ GameObject:
   - component: {fileID: 627946745}
   - component: {fileID: 627946744}
   - component: {fileID: 627946743}
+  - component: {fileID: 627946747}
   m_Layer: 0
   m_Name: Water1
   m_TagString: Water
@@ -1470,6 +1471,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 565844004}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &627946747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 627946742}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da25a3fb905e67d4587d66eeb3627803, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hydrationAmount: 50
 --- !u!1 &754933931
 GameObject:
   m_ObjectHideFlags: 0
@@ -1990,7 +2004,7 @@ MonoBehaviour:
   energy: 100
   speed: 3.5
   waypoints: []
-  spatialGrid: {fileID: 0}
+  spatialGrid: {fileID: 1371949819}
 --- !u!4 &1027478889
 Transform:
   m_ObjectHideFlags: 0
@@ -2093,6 +2107,7 @@ GameObject:
   - component: {fileID: 1263194500}
   - component: {fileID: 1263194499}
   - component: {fileID: 1263194498}
+  - component: {fileID: 1263194502}
   m_Layer: 0
   m_Name: RestZone (2)
   m_TagString: Rest
@@ -2145,7 +2160,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f5b9eebf8698b764d88a5be57d0656ab, type: 2}
+  - {fileID: 2100000, guid: 5cf786f8fcbd0334f9565d775dee02db, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2190,6 +2205,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 621086751}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1263194502
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1263194497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87cadc9887da3af4a8884ee74259a48c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  restBonus: 1.5
 --- !u!1 &1285412232
 GameObject:
   m_ObjectHideFlags: 0
@@ -2717,8 +2745,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a36479318778bb948ab26b027a34382c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  foodName: Pasto
-  nutrition: 25
+  foodName: PastoSeco
+  nutrition: 15
 --- !u!1 &1616143746
 GameObject:
   m_ObjectHideFlags: 0
@@ -3200,7 +3228,7 @@ GameObject:
   - component: {fileID: 1770831500}
   - component: {fileID: 1770831499}
   - component: {fileID: 1770831498}
-  - component: {fileID: 1770831497}
+  - component: {fileID: 1770831501}
   m_Layer: 0
   m_Name: Food (3)
   m_TagString: Food
@@ -3223,20 +3251,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 106692598}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1770831497
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1770831495}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a36479318778bb948ab26b027a34382c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  foodName: Hay
-  nutrition: 50
 --- !u!65 &1770831498
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3281,7 +3295,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 986fa810f603347428f429c3ba383d82, type: 2}
+  - {fileID: 2100000, guid: f5b9eebf8698b764d88a5be57d0656ab, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3311,6 +3325,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1770831495}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1770831501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1770831495}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a36479318778bb948ab26b027a34382c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  foodName: PastoNormal
+  nutrition: 25
 --- !u!1 &1773623659
 GameObject:
   m_ObjectHideFlags: 0
@@ -3573,8 +3601,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a36479318778bb948ab26b027a34382c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  foodName: Pasto
-  nutrition: 25
+  foodName: PastoSeco
+  nutrition: 15
 --- !u!1 &1839658248
 GameObject:
   m_ObjectHideFlags: 0
@@ -3587,6 +3615,7 @@ GameObject:
   - component: {fileID: 1839658251}
   - component: {fileID: 1839658250}
   - component: {fileID: 1839658249}
+  - component: {fileID: 1839658253}
   m_Layer: 0
   m_Name: RestZone (1)
   m_TagString: Rest
@@ -3639,7 +3668,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f5b9eebf8698b764d88a5be57d0656ab, type: 2}
+  - {fileID: 2100000, guid: 5cf786f8fcbd0334f9565d775dee02db, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3684,6 +3713,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 621086751}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1839658253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1839658248}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87cadc9887da3af4a8884ee74259a48c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  restBonus: 1.5
 --- !u!1 &1897377242
 GameObject:
   m_ObjectHideFlags: 0
@@ -3945,7 +3987,7 @@ GameObject:
   - component: {fileID: 2030802071}
   - component: {fileID: 2030802070}
   - component: {fileID: 2030802069}
-  - component: {fileID: 2030802068}
+  - component: {fileID: 2030802072}
   m_Layer: 0
   m_Name: Food (4)
   m_TagString: Food
@@ -3968,20 +4010,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 106692598}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2030802068
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2030802066}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a36479318778bb948ab26b027a34382c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  foodName: Pasto
-  nutrition: 25
 --- !u!65 &2030802069
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4056,6 +4084,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2030802066}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2030802072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2030802066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a36479318778bb948ab26b027a34382c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  foodName: PastoSeco
+  nutrition: 15
 --- !u!1 &2040923637
 GameObject:
   m_ObjectHideFlags: 0
@@ -4068,6 +4110,7 @@ GameObject:
   - component: {fileID: 2040923640}
   - component: {fileID: 2040923639}
   - component: {fileID: 2040923638}
+  - component: {fileID: 2040923642}
   m_Layer: 0
   m_Name: Water2
   m_TagString: Water
@@ -4166,6 +4209,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 565844004}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2040923642
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2040923637}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da25a3fb905e67d4587d66eeb3627803, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hydrationAmount: 50
 --- !u!1 &2127556099
 GameObject:
   m_ObjectHideFlags: 0
@@ -4245,7 +4301,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 986fa810f603347428f429c3ba383d82, type: 2}
+  - {fileID: 2100000, guid: f5b9eebf8698b764d88a5be57d0656ab, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4287,8 +4343,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a36479318778bb948ab26b027a34382c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  foodName: Hay
-  nutrition: 50
+  foodName: PastoNormal
+  nutrition: 25
 --- !u!1 &2140303327
 GameObject:
   m_ObjectHideFlags: 0
@@ -4409,10 +4465,10 @@ SceneRoots:
   - {fileID: 1731671444}
   - {fileID: 1761373811}
   - {fileID: 834093734}
+  - {fileID: 1027478889}
+  - {fileID: 1116877787}
   - {fileID: 106692598}
   - {fileID: 565844004}
-  - {fileID: 1116877787}
   - {fileID: 621086751}
   - {fileID: 575093185}
   - {fileID: 1371949820}
-  - {fileID: 1027478889}

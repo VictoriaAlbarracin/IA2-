@@ -15,7 +15,6 @@ public abstract class Animal : MonoBehaviour
     [Header("Comportamiento Autónomo")]
     public Transform[] waypoints;
 
-    // Referencia inyectada para optimizar las consultas espaciales en el TP2
     public SpatialGrid spatialGrid;
 
     protected List<IUtilityAction> _actions;
@@ -23,13 +22,12 @@ public abstract class Animal : MonoBehaviour
 
     protected virtual void Start()
     {
-        // 1. Obliga a que cada animal defina su cerebro en sus scripts hijos
         InitBrain();
     }
 
     protected virtual void Update()
     {
-        // Desgaste biológico en el tiempo
+        // Desgaste biológico
         hunger += Time.deltaTime * 3f;
         thirst += Time.deltaTime * 4f;
         energy -= Time.deltaTime * 2f;
@@ -46,19 +44,14 @@ public abstract class Animal : MonoBehaviour
 
         EvaluateAction();
 
-        // TP 2: Actualizamos la posición del animal en la grilla para que otros lo detecten
         if (spatialGrid != null)
         {
             spatialGrid.UpdateEntityPosition(this.gameObject);
         }
     }
 
-    // Método que deberán sobreescribir Oveja y Lobo
     protected abstract void InitBrain();
 
-    // =========================================================
-    // TOMA DE DECISIONES
-    // =========================================================
     protected virtual void EvaluateAction()
     {
         if (_actions == null || _actions.Count == 0) return;
@@ -72,18 +65,20 @@ public abstract class Animal : MonoBehaviour
     }
 
     // =========================================================
-    // BÚSQUEDA ESPACIAL A TRAVÉS DE LA GRILLA (TP2)
+    // BÚSQUEDA ESPACIAL CON LINQ GRUPO 3 (Sin CompareTag)
     // =========================================================
-    public GameObject BuscarRecurso(string targetTag, bool prioritizeNutrition)
+    public GameObject BuscarRecurso<T>(bool prioritizeNutrition) where T : Component
     {
         if (spatialGrid == null) return null;
 
-        // En lugar de buscar en todo el mapa, solo le pedimos a la grilla nuestra zona
         var nearbyEntities = spatialGrid.GetEntitiesInRadius(transform.position, 15f);
 
-        // Aplicamos LINQ sobre los objetos cercanos
+        // LINQ Grupo 3: .OfType<T>(), .ToList(), .Any()
         var filteredResources = nearbyEntities
-            .Where(e => e != null && e.activeInHierarchy && e.CompareTag(targetTag) && e != this.gameObject);
+            .Where(e => e != null && e.activeInHierarchy && e != this.gameObject)
+            .Select(e => e.GetComponent<T>())
+            .Where(component => component != null)
+            .ToList();
 
         if (!filteredResources.Any()) return null;
 
@@ -92,15 +87,15 @@ public abstract class Animal : MonoBehaviour
             return filteredResources
                 .OrderByDescending(r =>
                 {
-                    Food food = r.GetComponent<Food>();
+                    Food food = r as Food;
                     return food != null ? food.nutrition : 0f;
                 })
-                .FirstOrDefault();
+                .FirstOrDefault()?.gameObject;
         }
 
         return filteredResources
             .OrderBy(r => Vector3.Distance(transform.position, r.transform.position))
-            .FirstOrDefault();
+            .FirstOrDefault()?.gameObject;
     }
 
     public void Movement(Vector3 objective)

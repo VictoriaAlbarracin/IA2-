@@ -7,13 +7,13 @@ public class RestAction : IUtilityAction
     public float GetScore(Animal animal)
     {
         if (animal.energy <= 30f) return 1000f;
-
         return 100f - animal.energy;
     }
 
     public void Execute(Animal animal)
     {
-        GameObject restZone = animal.BuscarRecurso("Rest", false);
+        // Buscamos el componente RestZone
+        GameObject restZone = animal.BuscarRecurso<RestZone>(false);
 
         if (restZone == null)
         {
