@@ -15,119 +15,107 @@ public class EcosystemManager : MonoBehaviour
     [Header("Free Behaviour")]
     public Transform[] waypoints;
 
-    private Transform _currentWaypoint;
-
     [Header("Resources")]
-    [SerializeField] private List<GameObject> resourcePool; //aca ponemos los objetos
+    public List<GameObject> resourcePool;
 
-    private List<Actions> _actions;
-    private Actions _currentAction;
-
+    private List<IUtilityAction> _actions;
+    private IUtilityAction _currentAction;
 
     private void Start()
     {
-        _actions = new List<Actions>
+        // Instanciamos las clases polimórficas de manera limpia
+        _actions = new List<IUtilityAction>
         {
-            new Actions
-            {
-                Name = "Patrol", 
-                GetScore = () => 30f, //si no hay nada a mas de 30f que patruye
-                Execute = Patrol
-            },
-
-            new Actions
-            {
-                Name = "Eat",
-                GetScore = () => hunger,
-                Execute = Eat
-            },
-
-            new Actions
-            {
-                Name = "Drink",
-                GetScore = () => thirst * 1.2f,
-                Execute = Drink
-            },
-
-            new Actions
-            {
-                Name = "Rest",
-                GetScore = () => 100f - energy,
-                Execute = Rest
-            }
+            new PatrolAction(),
+            new EatAction(),
+            new DrinkAction(),
+            new RestAction()
         };
     }
 
     private void Update()
     {
-        //para aumentar las necesidades con el tiempo
         hunger += Time.deltaTime * 3f;
         thirst += Time.deltaTime * 4f;
         energy -= Time.deltaTime * 2f;
 
-        //limitamos los valores entre 0 y 100
         hunger = Mathf.Clamp(hunger, 0f, 100f);
         thirst = Mathf.Clamp(thirst, 0f, 100f);
         energy = Mathf.Clamp(energy, 0f, 100f);
 
-        if (hunger >= 100f || thirst >= 100f) //Se muere si llega al limite de hambre o sed
+        if (hunger >= 100f || thirst >= 100f)
         {
             Destroy(gameObject);
             return;
         }
 
         EvaluateAction();
-
     }
 
-    private void EvaluateAction() //evalua las acciones tomando como prioridad que descanse, si no descansa sigue evaluando las demas
+    private void EvaluateAction()
     {
-        //descansar es la prioridad
-        if (energy <= 30f)
-        {
-            _currentAction = _actions
-                .FirstOrDefault(action => action.Name == "Rest"); 
-
-            if (_currentAction != null)
-            {
-                _currentAction.Execute();
-            }
-
-            return;
-        }
-
-        // si tiene la energia suficiente evalua el resto de las acciones
+        // =========================================================
+        // TOMA DE DECISIONES CON LINQ
+        // Grupo 1: Where, FirstOrDefault | Grupo 2: OrderByDescending
+        // =========================================================
         _currentAction = _actions
-            .Where(action => action.Name != "Rest") //filtra las acciones descartando que descanse ya que no es una urgencia
-            .Where(action => action.GetScore() > 10f) //descarta los score que no sean urgentes
-            .OrderByDescending(action => action.GetScore()) //ordena los scores del mas alto al mas bajo
-            .FirstOrDefault(); //toma el primer elemento
+            .Where(action => action.GetScore(this) >= 10f) // Descarta acciones sin urgencia
+            .OrderByDescending(action => action.GetScore(this))
+            .FirstOrDefault();
 
-        if (_currentAction != null) //ejecuta la accion que sea necesaria
-        {   
-            Debug.Log("I need: " + _currentAction.Name); //que necesita
-            _currentAction.Execute(); 
+        if (_currentAction != null)
+        {
+            _currentAction.Execute(this);
         }
     }
 
-    private IEnumerable<GameObject> GenerateResources(string targetTag)
+    // =========================================================
+    // GENERATOR: Removido el CompareTag para que sea puro
+    // =========================================================
+    private IEnumerable<GameObject> GenerateResources()
     {
         foreach (GameObject resource in resourcePool)
         {
-            if (resource != null &&
-                resource.activeInHierarchy &&
-                resource.CompareTag(targetTag) &&
-                resource != gameObject)
+            if (resource != null && resource.activeInHierarchy && resource != gameObject)
             {
-                yield return resource; // entrega un recurso cada vez que es solicitado.
+                yield return resource;
             }
         }
+    }
+
+    // =========================================================
+    // CONSULTAS LINQ PARA BÚSQUEDA
+    // =========================================================
+    public GameObject BuscarRecurso(string targetTag, bool prioritizeNutrition)
+    {
+        var activeResources = GenerateResources();
+
+        // Grupo 1: Aplicamos el filtro de Tag mediante LINQ en lugar del generador
+        var filteredResources = activeResources.Where(r => r.CompareTag(targetTag));
+
+        // Grupo 3: Any - Verificamos con evaluación temprana si el filtro dejó resultados
+        if (!filteredResources.Any())
+            return null;
+
+        if (prioritizeNutrition)
+        {
+            return filteredResources
+                .OrderByDescending(r => // Grupo 2: OrderByDescending
+                {
+                    Food food = r.GetComponent<Food>();
+                    return food != null ? food.nutrition : 0f;
+                })
+                .FirstOrDefault(); // Grupo 1
+        }
+
+        return filteredResources
+            .OrderBy(r => Vector3.Distance(transform.position, r.transform.position)) // Grupo 2: OrderBy
+            .FirstOrDefault(); // Grupo 1
     }
 
     public void Movement(Vector3 objective)
     {
         objective.y = transform.position.y;
-
         transform.position = Vector3.MoveTowards(
             transform.position,
             objective,
@@ -135,161 +123,10 @@ public class EcosystemManager : MonoBehaviour
         );
     }
 
-
-    private void Patrol()
+    // Usado por las acciones cuando el objetivo desaparece o no se encuentra
+    public void ExecuteFallbackPatrol()
     {
-        if (waypoints == null || waypoints.Length == 0)
-            return;
-
-        if (_currentWaypoint == null ||
-            Vector3.Distance(
-                transform.position,
-                _currentWaypoint.position
-            ) < 1.5f)
-        {
-            int index = Random.Range(0, waypoints.Length);
-
-            _currentWaypoint = waypoints[index];
-        }
-
-        Movement(_currentWaypoint.position);
-    }
-
-    private void Eat()
-    {
-    
-        //busca la comida con mayor nutrición.
-        GameObject targetFood = SearchResource(
-            "Food", 
-            true
-        );
-
-        if (targetFood == null)
-        {
-            Patrol();
-            return;
-        }
-       
-
-        if (Vector3.Distance(
-                transform.position,
-                targetFood.transform.position
-            ) < 1.5f)
-        {
-            Food food = targetFood.GetComponent<Food>();
-
-            if (food != null)
-            {
-               
-                hunger -= food.nutrition;
-
-                Debug.Log("I ate! I'm full now!");
-
-                hunger = Mathf.Max(hunger, 0f); //despues de comer el hambre vuelve a 0
-            }
-
-            Destroy(targetFood);
-        }
-        else
-        { 
-            Movement(targetFood.transform.position);
-        }
-    }
-
-    private void Drink()
-    {
-        // con OrderBy busca el agua más cercana.
-
-        GameObject targetWater = SearchResource(
-            "Water",
-            false
-        );
-
-        if (targetWater == null)
-        {
-            Patrol();
-            return;
-        }
-
-        if (Vector3.Distance(
-                transform.position,
-                targetWater.transform.position
-            ) < 1.5f)
-        {
-            Debug.Log("I drank! I'm not thirsty anymore");
-            thirst = 0f;
-        }
-        else
-        {
-            Movement(targetWater.transform.position);
-        }
-    }
-
-    private void Rest()
-    {
-        // con OrderBy busca la restzone mas cercana
-
-        GameObject restZone = SearchResource(
-            "Rest",
-            false
-        );
-
-        if (restZone == null)
-        {
-            Patrol();
-            return;
-        }
-
-        if (Vector3.Distance(
-                transform.position,
-                restZone.transform.position
-            ) > 2f)
-        {
-            Movement(restZone.transform.position);
-        }
-        else
-        {
-            Debug.Log("I rested! I'm not tired!");
-            energy = 100f;
-        }
-    }
-
-    private GameObject SearchResource(
-        string targetTag,
-        bool prioritizeNutrition // prioriza la comida con mas nutricion
-    )
-    {
-        // el generator devuelve los recurso de forma lazy que se encuentran en la escena, con un yield return 
-        IEnumerable<GameObject> availableResources =
-            GenerateResources(targetTag);
-
-        if (prioritizeNutrition)
-        {
-            return availableResources
-
-                // mayor nutricion primero
-                .OrderByDescending(resource =>
-                {
-                    Food food = resource.GetComponent<Food>();
-
-                    if (food == null)
-                        return 0f;
-
-                    return food.nutrition;
-                })
-                // primer resultado
-                .FirstOrDefault();
-        }
-
-        return availableResources
-
-            // recurso mas cercano primero
-            .OrderBy(resource =>
-                Vector3.SqrMagnitude(
-                    transform.position -
-                    resource.transform.position
-                )
-            )
-            .FirstOrDefault();
+        var patrol = _actions.OfType<PatrolAction>().FirstOrDefault(); // Grupo 3: OfType
+        patrol?.Execute(this);
     }
 }
