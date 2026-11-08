@@ -5,9 +5,9 @@ public class PatrolAction : IUtilityAction
     public string Name => "Patrol";
     private Transform _currentWaypoint;
 
-    public float GetScore(EcosystemManager animal) => 30f; // Puntaje base
+    public float GetScore(Animal animal) => 30f;
 
-    public void Execute(EcosystemManager animal)
+    public void Execute(Animal animal)
     {
         if (animal.waypoints == null || animal.waypoints.Length == 0) return;
 

@@ -4,9 +4,9 @@ public class EatAction : IUtilityAction
 {
     public string Name => "Eat";
 
-    public float GetScore(EcosystemManager animal) => animal.hunger;
+    public float GetScore(Animal animal) => animal.hunger;
 
-    public void Execute(EcosystemManager animal)
+    public void Execute(Animal animal)
     {
         GameObject targetFood = animal.BuscarRecurso("Food", true);
 
@@ -23,7 +23,7 @@ public class EatAction : IUtilityAction
             {
                 animal.hunger -= food.nutrition;
                 animal.hunger = Mathf.Max(animal.hunger, 0f);
-                Debug.Log("ya comi");
+                Debug.Log("ya comi ñamñam");
             }
             Object.Destroy(targetFood);
         }

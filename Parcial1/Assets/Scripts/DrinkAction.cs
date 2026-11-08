@@ -4,9 +4,9 @@ public class DrinkAction : IUtilityAction
 {
     public string Name => "Drink";
 
-    public float GetScore(EcosystemManager animal) => animal.thirst * 1.2f;
+    public float GetScore(Animal animal) => animal.thirst * 1.2f;
 
-    public void Execute(EcosystemManager animal)
+    public void Execute(Animal animal)
     {
         GameObject targetWater = animal.BuscarRecurso("Water", false);
 
@@ -19,7 +19,7 @@ public class DrinkAction : IUtilityAction
         if (Vector3.Distance(animal.transform.position, targetWater.transform.position) < 1.5f)
         {
             animal.thirst = 0f;
-            Debug.Log("ya tome aguita");
+            Debug.Log("tome aguita");
         }
         else
         {

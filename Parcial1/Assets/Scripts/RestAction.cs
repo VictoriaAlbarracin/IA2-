@@ -4,15 +4,14 @@ public class RestAction : IUtilityAction
 {
     public string Name => "Rest";
 
-    public float GetScore(EcosystemManager animal)
+    public float GetScore(Animal animal)
     {
-        // Si la energía baja de 30, le damos urgencia máxima matemática para evitar usar "if" rígidos
         if (animal.energy <= 30f) return 1000f;
 
         return 100f - animal.energy;
     }
 
-    public void Execute(EcosystemManager animal)
+    public void Execute(Animal animal)
     {
         GameObject restZone = animal.BuscarRecurso("Rest", false);
 
@@ -29,7 +28,7 @@ public class RestAction : IUtilityAction
         else
         {
             animal.energy = 100f;
-            Debug.Log("I rested! I'm not tired!");
+            Debug.Log("ya descanse");
         }
     }
 }
