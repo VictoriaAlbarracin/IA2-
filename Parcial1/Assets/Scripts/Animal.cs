@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+[RequireComponent(typeof(GridEntity))]
 public abstract class Animal : MonoBehaviour
 {
     [Header("Necesidades Básicas")]
@@ -27,7 +28,6 @@ public abstract class Animal : MonoBehaviour
 
     protected virtual void Update()
     {
-        // Desgaste biológico
         hunger += Time.deltaTime * 3f;
         thirst += Time.deltaTime * 4f;
         energy -= Time.deltaTime * 2f;
@@ -43,11 +43,6 @@ public abstract class Animal : MonoBehaviour
         }
 
         EvaluateAction();
-
-        if (spatialGrid != null)
-        {
-            spatialGrid.UpdateEntityPosition(this.gameObject);
-        }
     }
 
     protected abstract void InitBrain();
@@ -65,19 +60,28 @@ public abstract class Animal : MonoBehaviour
     }
 
     // =========================================================
-    // BÚSQUEDA ESPACIAL CON LINQ GRUPO 3 (Sin CompareTag)
+    // BÚSQUEDA ESPACIAL USANDO EL QUERY DE SPATIALGRID + LINQ
     // =========================================================
-    public GameObject BuscarRecurso<T>(bool prioritizeNutrition) where T : Component
+    public GameObject BuscarRecurso<T>(bool prioritizeNutrition, float radius = 15f) where T : Component
     {
         if (spatialGrid == null) return null;
 
-        var nearbyEntities = spatialGrid.GetEntitiesInRadius(transform.position, 15f);
+        Vector3 min = transform.position + new Vector3(-radius, 0, -radius);
+        Vector3 max = transform.position + new Vector3(radius, 0, radius);
 
-        // LINQ Grupo 3: .OfType<T>(), .ToList(), .Any()
+        // Consulta circular en la SpatialGrid
+        var nearbyEntities = spatialGrid.Query(min, max, pos =>
+        {
+            Vector3 diff = pos - transform.position;
+            diff.y = 0;
+            return diff.sqrMagnitude <= radius * radius;
+        });
+
+        // Filtramos por componente T usando LINQ Grupo 3 (.ToList(), .Any())
         var filteredResources = nearbyEntities
-            .Where(e => e != null && e.activeInHierarchy && e != this.gameObject)
+            .Where(e => e != null && e.gameObject.activeInHierarchy && e.gameObject != this.gameObject)
             .Select(e => e.GetComponent<T>())
-            .Where(component => component != null)
+            .Where(comp => comp != null)
             .ToList();
 
         if (!filteredResources.Any()) return null;
@@ -116,10 +120,8 @@ public abstract class Animal : MonoBehaviour
 
     public virtual void Die()
     {
-        if (spatialGrid != null)
-        {
-            spatialGrid.RemoveEntity(this.gameObject);
-        }
+        // Al desactivar o destruir, si sigue en algún bucket lo sacamos moviéndolo fuera o desactivándolo
+        gameObject.SetActive(false);
         Destroy(gameObject);
     }
 }
