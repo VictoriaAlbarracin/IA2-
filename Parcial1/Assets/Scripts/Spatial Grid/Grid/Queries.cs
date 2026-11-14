@@ -58,7 +58,7 @@ public class Queries : MonoBehaviour
         if (Application.isPlaying)
         {
             selected = Query();
-            var temp = FindObjectsOfType<GridEntity>().Where(x=>!selected.Contains(x));
+            var temp = FindObjectsByType<GridEntity>(FindObjectsSortMode.None).Where(x => !selected.Contains(x));
             foreach (var item in temp)
             {
                 item.onGrid = false;

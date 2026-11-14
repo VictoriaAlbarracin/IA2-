@@ -113,11 +113,12 @@ public class SpatialGrid : MonoBehaviour
 
         // Iteramos las que queden dentro del criterio
         return cells
-            .SelectMany(cell => buckets[cell.Item1, cell.Item2])
-            .Where(e =>
-                from.x <= e.transform.position.x && e.transform.position.x <= to.x &&
-                from.z <= e.transform.position.z && e.transform.position.z <= to.z
-            ).Where(x => filterByPosition(x.transform.position));
+     .SelectMany(cell => buckets[cell.Item1, cell.Item2])
+     .Where(e => e != null && e.gameObject.activeInHierarchy)
+     .Where(e =>
+         from.x <= e.transform.position.x && e.transform.position.x <= to.x &&
+         from.z <= e.transform.position.z && e.transform.position.z <= to.z
+     ).Where(x => filterByPosition(x.transform.position));
     }
 
     public Tuple<int, int> GetPositionInGrid(Vector3 pos)

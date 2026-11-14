@@ -13,7 +13,7 @@ public class RestAction : IUtilityAction
     public void Execute(Animal animal)
     {
         // Buscamos el componente RestZone
-        GameObject restZone = animal.BuscarRecurso<RestZone>(false);
+        GameObject restZone = animal.BuscarRecurso<RestZone>(false,50f);
 
         if (restZone == null)
         {

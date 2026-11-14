@@ -5,13 +5,14 @@ using UnityEngine;
 
 public class Wolf : Animal
 {
-    // Inputs que disparan las transiciones entre estados
-    public enum WolfTrigger { StartPatrol, SpotPrey, NeedWater, NeedRest }
+    // Inputs que disparan las transiciones entre los 5 estados
+    public enum WolfTrigger { StartPatrol, SpotPrey, SpotMeat, NeedWater, NeedRest }
 
     private WolfStateMachine<WolfTrigger> _fsm;
 
-    [Header("Parámetros del Lobo")]
+    [Header("Wolf Settings")]
     public float detectionRadius = 15f;
+    public float resourceSearchRadius = 50f;
     public float attackRange = 1.5f;
     public float huntSpeedMultiplier = 1.35f;
 
@@ -19,22 +20,25 @@ public class Wolf : Animal
     private Transform _currentWaypoint;
     private float _baseSpeed;
 
-    // Evento cuya suscripción cambia dinámicamente según el estado actual
+    // Eventos cuya suscripción cambia dinámicamente según el estado actual
     public event Action<Sheep> OnPreySpotted;
+    public event Action<Meat> OnMeatSpotted;
 
     protected override void InitBrain()
     {
         _baseSpeed = speed;
-        _actions = new List<IUtilityAction>(); // Evita referencias nulas en la clase padre
+        _actions = new List<IUtilityAction>();
 
-        // 1. CREACIÓN DE LOS 4 ESTADOS
+        // 1. CREACIÓN DE LOS 5 ESTADOS
         var patrolState = new WolfState<WolfTrigger>("Patrol");
         var huntState = new WolfState<WolfTrigger>("Hunt");
+        var eatState = new WolfState<WolfTrigger>("Eat");
         var drinkState = new WolfState<WolfTrigger>("Drink");
         var restState = new WolfState<WolfTrigger>("Rest");
 
         // 2. CONFIGURACIÓN DE TRANSICIONES
         patrolState.AddTransition(WolfTrigger.SpotPrey, huntState);
+        patrolState.AddTransition(WolfTrigger.SpotMeat, eatState);
         patrolState.AddTransition(WolfTrigger.NeedWater, drinkState);
         patrolState.AddTransition(WolfTrigger.NeedRest, restState);
 
@@ -42,33 +46,47 @@ public class Wolf : Animal
         huntState.AddTransition(WolfTrigger.NeedWater, drinkState);
         huntState.AddTransition(WolfTrigger.NeedRest, restState);
 
+        eatState.AddTransition(WolfTrigger.StartPatrol, patrolState);
+        eatState.AddTransition(WolfTrigger.SpotPrey, huntState); // Si ve una oveja mientras va por carne, puede cazarla
+        eatState.AddTransition(WolfTrigger.NeedWater, drinkState);
+        eatState.AddTransition(WolfTrigger.NeedRest, restState);
+
         drinkState.AddTransition(WolfTrigger.StartPatrol, patrolState);
         drinkState.AddTransition(WolfTrigger.NeedRest, restState);
 
         restState.AddTransition(WolfTrigger.StartPatrol, patrolState);
 
-        // 3. DEFINICIÓN DE COMPORTAMIENTOS POR ESTADO (Enter / Update / Exit)
+        // 3. DEFINICIÓN DE COMPORTAMIENTOS POR ESTADO (OnEnter / OnUpdate / OnExit)
 
         // --- ESTADO 1: PATRULLAR ---
         patrolState.OnEnter += trigger =>
         {
-            // Nos suscribimos al evento de avistamiento ÚNICAMENTE al patrullar
+            Debug.Log("[Wolf FSM] Entrando a estado: PATROL");
+            // Suscripción dinámica: solo escucha detecciones de comida/presa al patrullar
             OnPreySpotted += ReactToSpottedPrey;
+            OnMeatSpotted += ReactToSpottedMeat;
         };
 
         patrolState.OnUpdate += () =>
         {
-            // Prioridades de supervivencia
             if (energy <= 25f) { _fsm.TriggerInput(WolfTrigger.NeedRest); return; }
             if (thirst >= 65f) { _fsm.TriggerInput(WolfTrigger.NeedWater); return; }
 
-            // Detección de ovejas si tiene hambre
             if (hunger >= 30f)
             {
+                // Prioridad 1: Si ve una oveja en rango de visión, la caza
                 Sheep prey = DetectClosestSheep();
                 if (prey != null)
                 {
-                    OnPreySpotted?.Invoke(prey); // Dispara el evento suscrito
+                    OnPreySpotted?.Invoke(prey);
+                    return;
+                }
+
+                // Prioridad 2: Si no hay ovejas cerca, busca carne en el piso
+                Meat meat = DetectClosestMeat();
+                if (meat != null)
+                {
+                    OnMeatSpotted?.Invoke(meat);
                     return;
                 }
             }
@@ -78,13 +96,15 @@ public class Wolf : Animal
 
         patrolState.OnExit += trigger =>
         {
-            // Desuscribimos el evento al salir de Patrol para que no reaccione en otros estados
+            Debug.Log("[Wolf FSM] Saliendo de estado: PATROL");
             OnPreySpotted -= ReactToSpottedPrey;
+            OnMeatSpotted -= ReactToSpottedMeat;
         };
 
-        // --- ESTADO 2: CAZAR (Perseguir oveja) ---
+        // --- ESTADO 2: CAZAR OVEJA ---
         huntState.OnEnter += trigger =>
         {
+            Debug.Log("[Wolf FSM] Entrando a estado: HUNT (Persiguiendo oveja)");
             speed = _baseSpeed * huntSpeedMultiplier;
         };
 
@@ -92,8 +112,10 @@ public class Wolf : Animal
         {
             if (energy <= 15f) { _fsm.TriggerInput(WolfTrigger.NeedRest); return; }
 
-            if (_currentTarget == null)
+            if (_currentTarget == null || !_currentTarget.gameObject.activeInHierarchy)
             {
+                Debug.Log("[Wolf] La presa desapareció. Volviendo a patrullar.");
+                _currentTarget = null;
                 _fsm.TriggerInput(WolfTrigger.StartPatrol);
                 return;
             }
@@ -102,17 +124,17 @@ public class Wolf : Animal
 
             if (distance > detectionRadius * 1.4f)
             {
-                // Perdió de vista a la oveja
+                Debug.Log("[Wolf] La oveja escapó de mi rango de visión.");
                 _currentTarget = null;
                 _fsm.TriggerInput(WolfTrigger.StartPatrol);
             }
             else if (distance <= attackRange)
             {
-                // Alcanzó a la oveja: la caza y recupera hambre
                 Sheep sheep = _currentTarget.GetComponent<Sheep>();
                 if (sheep != null) sheep.Die();
 
                 hunger = Mathf.Clamp(hunger - 65f, 0f, 100f);
+                Debug.Log("[Wolf] ¡Cacé y comí una oveja! Hambre actual: " + hunger);
                 _currentTarget = null;
                 _fsm.TriggerInput(WolfTrigger.StartPatrol);
             }
@@ -124,12 +146,68 @@ public class Wolf : Animal
 
         huntState.OnExit += trigger =>
         {
-            speed = _baseSpeed; // Restaura la velocidad normal al dejar de cazar
+            Debug.Log("[Wolf FSM] Saliendo de estado: HUNT");
+            speed = _baseSpeed;
         };
 
-        // --- ESTADO 3: TOMAR AGUA ---
+        // --- ESTADO 3: COMER CARNE DEL PISO ---
+        eatState.OnEnter += trigger =>
+        {
+            Debug.Log("[Wolf FSM] Entrando a estado: EAT (Yendo por carne del suelo)");
+        };
+
+        eatState.OnUpdate += () =>
+        {
+            if (energy <= 15f) { _fsm.TriggerInput(WolfTrigger.NeedRest); return; }
+
+            // Si aparece una oveja en rango mientras camina hacia la carne, cambia a cazarla
+            Sheep nearbyPrey = DetectClosestSheep();
+            if (nearbyPrey != null)
+            {
+                _currentTarget = nearbyPrey.transform;
+                _fsm.TriggerInput(WolfTrigger.SpotPrey);
+                return;
+            }
+
+            if (_currentTarget == null || !_currentTarget.gameObject.activeInHierarchy)
+            {
+                _currentTarget = null;
+                _fsm.TriggerInput(WolfTrigger.StartPatrol);
+                return;
+            }
+
+            float distance = Vector3.Distance(transform.position, _currentTarget.position);
+
+            if (distance <= attackRange)
+            {
+                Meat meat = _currentTarget.GetComponent<Meat>();
+                if (meat != null)
+                {
+                    hunger = Mathf.Clamp(hunger - meat.nutrition, 0f, 100f);
+                    Debug.Log("[Wolf] ¡Ya comí carne del suelo! Hambre actual: " + hunger);
+                }
+
+                _currentTarget.gameObject.SetActive(false);
+                Destroy(_currentTarget.gameObject);
+                _currentTarget = null;
+                _fsm.TriggerInput(WolfTrigger.StartPatrol);
+            }
+            else
+            {
+                Movement(_currentTarget.position);
+            }
+        };
+
+        eatState.OnExit += trigger =>
+        {
+            Debug.Log("[Wolf FSM] Saliendo de estado: EAT");
+            _currentTarget = null;
+        };
+
+        // --- ESTADO 4: TOMAR AGUA ---
         drinkState.OnEnter += trigger =>
         {
+            Debug.Log("[Wolf FSM] Entrando a estado: DRINK");
             _currentTarget = FindClosestWater();
         };
 
@@ -141,9 +219,10 @@ public class Wolf : Animal
                 return;
             }
 
-            if (Vector3.Distance(transform.position, _currentTarget.position) <= 1.5f)
+            if (Vector3.Distance(transform.position, _currentTarget.position) <= 2.5f)
             {
                 thirst = 0f;
+                Debug.Log("[Wolf] ¡Ya tomé agua en " + _currentTarget.name + "!");
                 _currentTarget = null;
                 _fsm.TriggerInput(WolfTrigger.StartPatrol);
             }
@@ -155,28 +234,36 @@ public class Wolf : Animal
 
         drinkState.OnExit += trigger =>
         {
+            Debug.Log("[Wolf FSM] Saliendo de estado: DRINK");
             _currentTarget = null;
         };
 
-        // --- ESTADO 4: DESCANSAR ---
+        // --- ESTADO 5: DESCANSAR ---
         restState.OnEnter += trigger =>
         {
+            Debug.Log("[Wolf FSM] Entrando a estado: REST");
             _currentTarget = FindClosestRestZone();
         };
 
         restState.OnUpdate += () =>
         {
-            if (_currentTarget != null && Vector3.Distance(transform.position, _currentTarget.position) > 2f)
+            if (_currentTarget == null)
+            {
+                _fsm.TriggerInput(WolfTrigger.StartPatrol);
+                return;
+            }
+
+            if (Vector3.Distance(transform.position, _currentTarget.position) > 2.5f)
             {
                 Movement(_currentTarget.position);
             }
             else
             {
-                // Recupera energía progresivamente en el lugar
-                energy += Time.deltaTime * 20f;
+                energy += Time.deltaTime * 25f;
                 if (energy >= 100f)
                 {
                     energy = 100f;
+                    Debug.Log("[Wolf] ¡Ya descansé por completo en " + _currentTarget.name + "!");
                     _fsm.TriggerInput(WolfTrigger.StartPatrol);
                 }
             }
@@ -184,6 +271,7 @@ public class Wolf : Animal
 
         restState.OnExit += trigger =>
         {
+            Debug.Log("[Wolf FSM] Saliendo de estado: REST");
             _currentTarget = null;
         };
 
@@ -193,27 +281,31 @@ public class Wolf : Animal
 
     protected override void Update()
     {
-        // Ejecuta desgaste biológico (hunger, thirst, energy) y actualización de grilla de Animal
         base.Update();
-
-        // Actualiza el estado activo de la FSM
         _fsm?.Tick();
     }
 
-    // Anulamos la lógica de Utility AI de Animal para que no interfiera con la FSM
     protected override void EvaluateAction() { }
 
     // =========================================================
-    // CALLBACK DEL EVENTO DINÁMICO
+    // CALLBACKS DE EVENTOS DINÁMICOS
     // =========================================================
     private void ReactToSpottedPrey(Sheep prey)
     {
+        Debug.Log("[Wolf Evento] ¡Oveja avistada: " + prey.name + "! Iniciando caza.");
         _currentTarget = prey.transform;
         _fsm.TriggerInput(WolfTrigger.SpotPrey);
     }
 
+    private void ReactToSpottedMeat(Meat meat)
+    {
+        Debug.Log("[Wolf Evento] ¡Carne detectada en el piso: " + meat.name + "!");
+        _currentTarget = meat.transform;
+        _fsm.TriggerInput(WolfTrigger.SpotMeat);
+    }
+
     // =========================================================
-    // MÉTODOS DE NAVEGACIÓN Y DETECCIÓN
+    // MÉTODOS DE NAVEGACIÓN Y DETECCIÓN (VÍA SPATIAL GRID)
     // =========================================================
     private void MoveAlongWaypoints()
     {
@@ -230,23 +322,29 @@ public class Wolf : Animal
 
     private Sheep DetectClosestSheep()
     {
-        // Usamos el método BuscarRecurso<T> de Animal que ya consulta el Query de SpatialGrid
         GameObject sheepObj = BuscarRecurso<Sheep>(false, detectionRadius);
-        if (sheepObj != null)
-        {
-            return sheepObj.GetComponent<Sheep>();
-        }
+        if (sheepObj != null) return sheepObj.GetComponent<Sheep>();
 
-        // Respaldo por si aún no asignaste la SpatialGrid en el Inspector
         return FindObjectsByType<Sheep>(FindObjectsSortMode.None)
-            .Where(s => s != null && Vector3.Distance(transform.position, s.transform.position) <= detectionRadius)
+            .Where(s => s != null && s.gameObject.activeInHierarchy && Vector3.Distance(transform.position, s.transform.position) <= detectionRadius)
             .OrderBy(s => Vector3.Distance(transform.position, s.transform.position))
+            .FirstOrDefault();
+    }
+
+    private Meat DetectClosestMeat()
+    {
+        GameObject meatObj = BuscarRecurso<Meat>(false, detectionRadius);
+        if (meatObj != null) return meatObj.GetComponent<Meat>();
+
+        return FindObjectsByType<Meat>(FindObjectsSortMode.None)
+            .Where(m => m != null && m.gameObject.activeInHierarchy && Vector3.Distance(transform.position, m.transform.position) <= detectionRadius)
+            .OrderBy(m => Vector3.Distance(transform.position, m.transform.position))
             .FirstOrDefault();
     }
 
     private Transform FindClosestWater()
     {
-        GameObject waterObj = BuscarRecurso<Water>(false);
+        GameObject waterObj = BuscarRecurso<Water>(false, resourceSearchRadius);
         if (waterObj != null) return waterObj.transform;
 
         var fallback = FindObjectsByType<Water>(FindObjectsSortMode.None)
@@ -257,12 +355,27 @@ public class Wolf : Animal
 
     private Transform FindClosestRestZone()
     {
-        GameObject restObj = BuscarRecurso<RestZone>(false);
+        GameObject restObj = BuscarRecurso<RestZone>(false, resourceSearchRadius);
         if (restObj != null) return restObj.transform;
 
         var fallback = FindObjectsByType<RestZone>(FindObjectsSortMode.None)
             .OrderBy(r => Vector3.Distance(transform.position, r.transform.position))
             .FirstOrDefault();
         return fallback != null ? fallback.transform : null;
+    }
+
+    private void OnDrawGizmos() //gizmos para visualizar el rango de vision del wofl
+    {
+        //rango de detección de la oveja 8amarillo)
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+
+        //rango maximo antes de perder de vista a la oveja (naranja)
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
+        Gizmos.DrawWireSphere(transform.position, detectionRadius * 1.4f);
+
+        // rango del ataque (rojo)
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }

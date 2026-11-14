@@ -9,7 +9,7 @@ public class DrinkAction : IUtilityAction
     public void Execute(Animal animal)
     {
         // Buscamos el componente Water
-        GameObject targetWater = animal.BuscarRecurso<Water>(false);
+        GameObject targetWater = animal.BuscarRecurso<Water>(false,50f);
 
         if (targetWater == null)
         {
